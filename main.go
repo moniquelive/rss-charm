@@ -16,6 +16,8 @@ const (
 
 var models []tea.Model
 
+var windowWidth, windowHeight int
+
 type item struct {
 	title, url string
 }
@@ -77,6 +79,8 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		windowWidth = msg.Width
+		windowHeight = msg.Height
 		h, v := docStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v)
 	case tea.KeyMsg:
@@ -88,7 +92,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			readM := newRead(i.title, i.url)
 			models[choose] = m
 			models[read] = readM
-			return models[read].Update(nil)
+			return models[read], models[read].Init()
 		}
 	}
 
