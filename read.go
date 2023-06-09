@@ -107,7 +107,10 @@ func (rm *readModel) downloadURL() func() tea.Msg {
 		if err != nil {
 			return errMsg{err}
 		}
-		body := "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" + string(bytes)
+		body := string(bytes)
+		if !strings.HasPrefix(body, "<?xml version") && !strings.Contains(body, "2.0") {
+			body = `<?xml version="1.0" encoding="iso-8859-1"?>` + body
+		}
 		var rss Rss
 		decoder := xml.NewDecoder(strings.NewReader(body))
 		decoder.CharsetReader = charset.NewReaderLabel
@@ -115,22 +118,22 @@ func (rm *readModel) downloadURL() func() tea.Msg {
 			return errMsg{err}
 		}
 		return rssMarkdown(
-			fmt.Sprintf("# %s\n\n%s", rss.Channel.Description, formatItems(rss.Channel.Item)),
+			fmt.Sprintf("# %s\n\n%s", strings.TrimSpace(rss.Channel.Description), formatItems(rss.Channel.Item)),
 		)
 	}
 }
 
 func formatItems(items Items) string {
 	converter := md.NewConverter("", true, nil)
-
 	formatted := ""
 	for _, item := range items {
-		formatted += "## " + item.Title + "\n\n"
-		markdown, err := converter.ConvertString(item.Description)
-		if err != nil {
-			formatted += item.Description + "\n\n"
+		contents := ""
+		if description, _ := converter.ConvertString(strings.TrimSpace(item.Description)); description != "" {
+			contents += fmt.Sprintf("- %s\n", description)
 		}
-		formatted += markdown + "\n\n"
+		contents += strings.TrimSpace(item.Link)
+		formatted += "## " + strings.TrimSpace(item.Title) + "\n\n"
+		formatted += contents + "\n\n"
 	}
 	return formatted
 }
